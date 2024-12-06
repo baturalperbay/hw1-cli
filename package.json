@@ -12,6 +12,7 @@
   },
   "private": true,
   "dependencies": {
+    "commander": "^12.1.0",
     "inquirer": "^12.1.0"
   }
 }
