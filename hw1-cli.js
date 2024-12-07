@@ -28,7 +28,7 @@ async function swapTokens() {
                 {
                     type: 'input',
                     name: 'tokenSwap_A2B_Amount',
-                    message: 'Enter the amount of Token A you want to swap:',
+                    message: `Enter the amount of Token A you want to swap (1 - ${userBalance.tokenA}): `,
                 },
             ]);
 
@@ -49,7 +49,7 @@ async function swapTokens() {
                 {
                     type: 'input',
                     name: 'tokenSwap_B2A_Amount',
-                    message: 'Enter the amount of Token B you want to swap:',
+                    message: `Enter the amount of Token B you want to swap (1 - ${userBalance.tokenB}): `,
                 },
             ]);
 
