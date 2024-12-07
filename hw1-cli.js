@@ -10,7 +10,61 @@ async function addLiquidity() {
 }
 
 async function swapTokens() {
-    console.log("You chose to swap tokens.");
+    const { choice: tokenSwapChoice } = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'choice',
+            message: 'Choose operation:',
+            choices: [
+                'swap Token A for Token B',
+                'swap Token B for Token A',
+            ],
+        },
+    ]);
+
+    switch ( tokenSwapChoice ) {
+        case 'swap Token A for Token B':
+            let { tokenSwap_A2B_Amount } = await inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'tokenSwap_A2B_Amount',
+                    message: 'Enter the amount of Token A you want to swap:',
+                },
+            ]);
+
+            tokenSwap_A2B_Amount = parseFloat(tokenSwap_A2B_Amount);
+
+            if (userBalance.tokenA > tokenSwap_A2B_Amount) {
+                const receivedTokenB =  pool.tokenB - (pool.K / (pool.tokenA + tokenSwap_A2B_Amount));
+                pool.tokenA += tokenSwap_A2B_Amount;
+                pool.tokenB -= receivedTokenB;
+                userBalance.tokenB += receivedTokenB;
+                userBalance.tokenA -= tokenSwap_A2B_Amount;
+            }
+
+            break;
+
+        case 'swap Token B for Token A':
+            let { tokenSwap_B2A_Amount } = await inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'tokenSwap_B2A_Amount',
+                    message: 'Enter the amount of Token B you want to swap:',
+                },
+            ]);
+
+            tokenSwap_B2A_Amount = parseFloat(tokenSwap_B2A_Amount);
+
+            if (userBalance.tokenB > tokenSwap_B2A_Amount) {
+                const receivedTokenA =  pool.tokenA - (pool.K / (pool.tokenB + tokenSwap_B2A_Amount));
+                pool.tokenB += tokenSwap_B2A_Amount;
+                pool.tokenA -= receivedTokenA;
+                userBalance.tokenA += receivedTokenA;
+                userBalance.tokenB -= tokenSwap_B2A_Amount;
+            }
+
+            break;
+    }
 }
 
 async function viewCurrentPool() {
