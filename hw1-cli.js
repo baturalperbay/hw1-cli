@@ -68,12 +68,12 @@ async function swapTokens() {
 }
 
 async function viewCurrentPool() {
-    console.log("You chose to view the current pool.");
-    console.log(" Token A:", pool['tokenA'], "\n", "Token B:", pool['tokenB']);
+    console.log("Current pool: ");
+    console.log(`Token A: ${pool.tokenA} \n Token B: ${pool.tokenB}`);
 }
 
 async function viewUserBalance() {
-    console.log(" Token A:", userBalance['tokenA'], "\n", "Token B:", userBalance['tokenB']);
+    console.log(`Token A: ${userBalance.tokenA} \n Token B: ${userBalance.tokenB}`);
 }
 
 async function showMenu() {
