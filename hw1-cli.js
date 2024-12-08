@@ -1,15 +1,41 @@
 import inquirer from 'inquirer';
+import fs from 'fs';
 
-/* directly from hw1 page */
+const DATA_FILE = './data.json';
+
+function readData() {
+    try {
+        if (!fs.existsSync(DATA_FILE)) {
+            const initialData = {
+                pool: { tokenA: 1000, tokenB: 1000, K: 1000000 },
+                userBalance: { tokenA: 500, tokenB: 500 }
+            };
+            fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2));
+            //console.log(`File ${DATA_FILE} created with default data.`);
+            return initialData;
+        }
+        return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+    } catch (err) {
+        console.error('Error reading or creating data file:', err);
+        return { pool: { tokenA: 1000, tokenB: 1000, K: 1000000 }, userBalance: { tokenA: 500, tokenB: 500 } };
+    }
+}
+
+function writeData(data) {
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+}
+
+/* directly from hw1 page
 let pool = { tokenA: 1000, tokenB: 1000, K: 1000000 };
 let userBalance = { tokenA: 500, tokenB: 500 };
-/* directly from hw1 page */
+directly from hw1 page */
 
 async function addLiquidity() {
     console.log("You chose to add liquidity.");
 }
 
 async function swapTokens() {
+    const data = readData();
     const { choice: tokenSwapChoice } = await inquirer.prompt([
         {
             type: 'list',
@@ -28,18 +54,18 @@ async function swapTokens() {
                 {
                     type: 'input',
                     name: 'tokenSwap_A2B_Amount',
-                    message: `Enter the amount of Token A you want to swap (1 - ${userBalance.tokenA}): `,
+                    message: `Enter the amount of Token A you want to swap (1 - ${data.userBalance.tokenA}): `,
                 },
             ]);
 
             tokenSwap_A2B_Amount = parseFloat(tokenSwap_A2B_Amount);
 
-            if (userBalance.tokenA > tokenSwap_A2B_Amount) {
-                const receivedTokenB =  pool.tokenB - (pool.K / (pool.tokenA + tokenSwap_A2B_Amount));
-                pool.tokenA += tokenSwap_A2B_Amount;
-                pool.tokenB -= receivedTokenB;
-                userBalance.tokenB += receivedTokenB;
-                userBalance.tokenA -= tokenSwap_A2B_Amount;
+            if (data.userBalance.tokenA > tokenSwap_A2B_Amount) {
+                const receivedTokenB =  data.pool.tokenB - (data.pool.K / (data.pool.tokenA + tokenSwap_A2B_Amount));
+                data.pool.tokenA += tokenSwap_A2B_Amount;
+                data.pool.tokenB -= receivedTokenB;
+                data.userBalance.tokenB += receivedTokenB;
+                data.userBalance.tokenA -= tokenSwap_A2B_Amount;
             }
 
             break;
@@ -49,31 +75,34 @@ async function swapTokens() {
                 {
                     type: 'input',
                     name: 'tokenSwap_B2A_Amount',
-                    message: `Enter the amount of Token B you want to swap (1 - ${userBalance.tokenB}): `,
+                    message: `Enter the amount of Token B you want to swap (1 - ${data.userBalance.tokenB}): `,
                 },
             ]);
 
             tokenSwap_B2A_Amount = parseFloat(tokenSwap_B2A_Amount);
 
-            if (userBalance.tokenB > tokenSwap_B2A_Amount) {
-                const receivedTokenA =  pool.tokenA - (pool.K / (pool.tokenB + tokenSwap_B2A_Amount));
-                pool.tokenB += tokenSwap_B2A_Amount;
-                pool.tokenA -= receivedTokenA;
-                userBalance.tokenA += receivedTokenA;
-                userBalance.tokenB -= tokenSwap_B2A_Amount;
+            if (data.userBalance.tokenB > tokenSwap_B2A_Amount) {
+                const receivedTokenA =  data.pool.tokenA - (data.pool.K / (data.pool.tokenB + tokenSwap_B2A_Amount));
+                data.pool.tokenB += tokenSwap_B2A_Amount;
+                data.pool.tokenA -= receivedTokenA;
+                data.userBalance.tokenA += receivedTokenA;
+                data.userBalance.tokenB -= tokenSwap_B2A_Amount;
             }
 
             break;
     }
+    writeData(data);
 }
 
 async function viewCurrentPool() {
+    const data = readData();
     console.log("Current pool: ");
-    console.log(`Token A: ${pool.tokenA} \n Token B: ${pool.tokenB}`);
+    console.log(`Token A: ${data.pool.tokenA} \n Token B: ${data.pool.tokenB}`);
 }
 
 async function viewUserBalance() {
-    console.log(`Token A: ${userBalance.tokenA} \n Token B: ${userBalance.tokenB}`);
+    const data = readData();
+    console.log(`Token A: ${data.userBalance.tokenA} \n Token B: ${data.userBalance.tokenB}`);
 }
 
 async function showMenu() {
