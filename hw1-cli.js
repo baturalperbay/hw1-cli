@@ -27,10 +27,11 @@ function writeData(data) {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 }
 
-/* directly from hw1 page
-let pool = { tokenA: 1000, tokenB: 1000, K: 1000000 };
-let userBalance = { tokenA: 500, tokenB: 500 };
-directly from hw1 page */
+function truncate(number) {
+    return Math.trunc(number * 100) / 100;
+    // truncate because .toFixed(2) rounds the number.
+    // not very necessary I know.
+}
 
 async function addLiquidity() {
     console.log("You chose to add liquidity.");
@@ -99,12 +100,12 @@ async function swapTokens() {
 async function viewCurrentPool() {
     const data = readData();
     console.log("Current pool: ");
-    console.log(`Token A: ${data.pool.tokenA} \n Token B: ${data.pool.tokenB}`);
+    console.log(`Token A: ${truncate(data.pool.tokenA)} \n Token B: ${truncate(data.pool.tokenB)}`);
 }
 
 async function viewUserBalance() {
     const data = readData();
-    console.log(`Token A: ${data.userBalance.tokenA} \n Token B: ${data.userBalance.tokenB}`);
+    console.log(`Token A: ${truncate(data.userBalance.tokenA)} \n Token B: ${truncate(data.userBalance.tokenB)}`);
 }
 
 async function showMenu() {
@@ -152,8 +153,8 @@ program
     .action(() => {
         const data = readData();
         console.log(chalk.blue('Pool Status:'));
-        console.log(`Token A: ${data.pool.tokenA}`);
-        console.log(`Token B: ${data.pool.tokenB}`);
+        console.log(`Token A: ${truncate(data.pool.tokenA)}`);
+        console.log(`Token B: ${truncate(data.pool.tokenB)}`);
         //console.log(`K (Sabiti): ${data.pool.K}`);
     });
 
@@ -200,7 +201,7 @@ program
         // update JSON file.
         writeData(data);
 
-        console.log(chalk.green(`Swap successful! ${amount} ${fromToken} was exchanged for ${outputAmount.toFixed(2)} ${toToken}.`));
+        console.log(chalk.green(`Swap successful! ${truncate(amount)} ${fromToken} was exchanged for ${truncate(outputAmount)} ${toToken}.`));
     });
 
 function calculateSwapOutput(inputAmount, reserveIn, reserveOut) {
@@ -236,7 +237,7 @@ program
         // update JSON file.
         writeData(data);
 
-        console.log(chalk.green(`Success! ${tokenAAmount} Token A and ${tokenBAmount} Token B have been added to the pool.`));
+        console.log(chalk.green(`Success! ${truncate(tokenAAmount)} Token A and ${truncate(tokenBAmount)} Token B have been added to the pool.`));
     });
 
 program
@@ -262,7 +263,7 @@ program
         // update JSON file.
         writeData(data);
 
-        console.log(chalk.green(`Success! ${tokenARemove.toFixed(2)} of Token A and ${tokenBRemove.toFixed(2)} of Token B have been removed from the pool.`))
+        console.log(chalk.green(`Success! ${truncate(tokenARemove)} of Token A and ${truncate(tokenBRemove)} of Token B have been removed from the pool.`))
     });
 
 if (process.argv.length > 2) {
