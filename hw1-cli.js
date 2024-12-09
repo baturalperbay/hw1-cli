@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import inquirer from 'inquirer';
 import chalk from 'chalk';
 import { program } from 'commander';
@@ -34,10 +36,66 @@ function truncate(number) {
     // not very necessary I know.
 }
 
-async function addLiquidity() {
+async function removeLiquidity() {
     const data = readData();
 
-    let { amountA } = await inquirer.prompt([
+    const tokenA20 = truncate(data.liquidityShare.tokenA / 5);
+    const tokenA50 = truncate(data.liquidityShare.tokenA / 2);
+    const tokenA100 = truncate(data.liquidityShare.tokenA);
+    const tokenB20 = truncate(data.liquidityShare.tokenB / 5);
+    const tokenB50 = truncate(data.liquidityShare.tokenB / 2);
+    const tokenB100 = truncate(data.liquidityShare.tokenB);
+
+    // display the token shares and the amounts for 20%, 50%, and 100%
+    console.log(chalk.blueBright("Your shares in the pool:"));
+    console.log(chalk.yellowBright(`Token A: ${truncate(data.liquidityShare.tokenA)}`));
+    console.log(chalk.yellowBright(`Token B: ${truncate(data.liquidityShare.tokenB)}`));
+    console.log();
+
+    console.log(chalk.blueBright("Percentages for Token A:"));
+    console.log(chalk.yellowBright(`20%: ${tokenA20}\n50%: ${tokenA50}\n100%: ${tokenA100}`));
+    console.log();
+
+    console.log(chalk.blueBright("Percentages for Token B:"));
+    console.log(chalk.yellowBright(`20%: ${tokenB20}\n50%: ${tokenB50}\n100%: ${tokenB100}`));
+    console.log();
+
+    let { percentage } = await inquirer.prompt([
+        {
+            type: 'input',
+            name: 'percentage',
+            message: `Enter percentage you want to withdraw from the pool %1-100:  `,
+            validate: (input) => {
+                const value = parseFloat(input);
+                if (isNaN(value) || value <= 0 || value > 100) {
+                    return chalk.red(`Please enter a valid amount between 1 and 100`);
+                }
+                return true;
+            }
+        }
+    ]);
+
+    percentage = parseFloat(percentage);
+    const amountWithdrawA = data.liquidityShare.tokenA * percentage / 100;
+    const amountWithdrawB = data.liquidityShare.tokenB * percentage / 100;
+
+    data.pool.tokenA -= amountWithdrawA;
+    data.pool.tokenB -= amountWithdrawB;
+
+    data.userBalance.tokenA += amountWithdrawA;
+    data.userBalance.tokenB += amountWithdrawB;
+
+    data.liquidityShare.tokenA -= amountWithdrawA;
+    data.liquidityShare.tokenB -= amountWithdrawB;
+
+    console.log(chalk.green(`Success! You have withdrawn ${truncate(amountWithdrawA)} Token A and ${truncate(amountWithdrawB)} Token B from the pool.`))
+}
+
+async function addLiquidity() {
+    const data = readData();
+    const poolRatio = data.pool.tokenA / data.pool.tokenB;
+
+    const { amountA } = await inquirer.prompt([
         {
             type: 'input',
             name: 'amountA',
@@ -45,45 +103,48 @@ async function addLiquidity() {
             validate: (input) => {
                 const value = parseFloat(input);
                 if (isNaN(value) || value <= 0 || value > data.userBalance.tokenA) {
-                    return chalk.red(`Please enter a valid amount between 1 and ${truncate(data.userBalance.tokenA)}`);
+                    return chalk.red(`Please enter a valid amount between 1 and ${truncate(data.userBalance.tokenA)}.`);
                 }
                 return true;
             }
         }
     ]);
 
-    let { amountB } = await inquirer.prompt([
+    const tokenAmountA = parseFloat(amountA);
+    const requiredTokenB = tokenAmountA / poolRatio;
+
+    // check if the user has enough Token B
+    if (requiredTokenB > data.userBalance.tokenB) {
+        console.log(chalk.red(`Insufficient Token B for the given Token A amount. You need ${truncate(requiredTokenB)} Token B.`));
+        console.log(chalk.yellowBright(`You can contribute up to ${truncate(data.userBalance.tokenB * poolRatio)} Token A with your current Token B balance.`));
+        return;
+    }
+
+    // confirmation for the liquidity addition
+    console.log(chalk.blueBright(`For ${truncate(tokenAmountA)} Token A, you need to add ${truncate(requiredTokenB)} Token B.`));
+    const { confirm } = await inquirer.prompt([
         {
-            type: 'input',
-            name: 'amountB',
-            message: `Enter the amount of Token B you want to add (1 - ${truncate(data.userBalance.tokenB)}): `,
-            validate: (input) => {
-                const value = parseFloat(input);
-                if (isNaN(value) || value <= 0 || value > data.userBalance.tokenB) {
-                    return `Please enter a valid amount between 1 and ${truncate(data.userBalance.tokenB)}`;
-                }
-                return true;
-            }
+            type: 'confirm',
+            name: 'confirm',
+            message: 'Do you want to proceed with this contribution?',
         }
     ]);
 
-    amountA = parseFloat(amountA);
-    amountB = parseFloat(amountB);
+    if (!confirm) {
+        console.log(chalk.yellow('Liquidity addition canceled.'));
+        return;
+    }
 
-    data.liquidityShare.tokenA += amountA;
-    data.liquidityShare.tokenB += amountB;
+    data.userBalance.tokenA -= tokenAmountA;
+    data.userBalance.tokenB -= requiredTokenB;
+    data.pool.tokenA += tokenAmountA;
+    data.pool.tokenB += requiredTokenB;
 
-    // Remove tokens from the user's balance.
-    data.userBalance.tokenA -= amountA;
-    data.userBalance.tokenB -= amountB;
+    data.liquidityShare.tokenA += tokenAmountA;
+    data.liquidityShare.tokenB += requiredTokenB;
 
-    // Add the tokens to the pool
-    data.pool.tokenA += amountA;
-    data.pool.tokenB += amountB;
-
-    // Update JSON file.
     writeData(data);
-    console.log(chalk.green(`Success! ${truncate(amountA)} Token A and ${truncate(amountB)} Token B have been added to the pool.`));
+    console.log(chalk.green(`Success! ${truncate(tokenAmountA)} Token A and ${truncate(requiredTokenB)} Token B have been added to the pool.`));
 }
 
 async function swapTokens() {
@@ -94,14 +155,18 @@ async function swapTokens() {
             name: 'choice',
             message: 'Choose operation:',
             choices: [
-                'swap Token A for Token B',
-                'swap Token B for Token A',
+                'Swap Token A for Token B',
+                'Swap Token B for Token A',
+                'Go Back'
             ],
         },
     ]);
 
     switch ( tokenSwapChoice ) {
-        case 'swap Token A for Token B':
+        case 'Go Back':
+            await showMenu();
+            break;
+        case 'Swap Token A for Token B':
             let { tokenSwap_A2B_Amount } = await inquirer.prompt([
                 {
                     type: 'input',
@@ -124,7 +189,7 @@ async function swapTokens() {
 
             break;
 
-        case 'swap Token B for Token A':
+        case 'Swap Token B for Token A':
             let { tokenSwap_B2A_Amount } = await inquirer.prompt([
                 {
                     type: 'input',
@@ -152,13 +217,16 @@ async function swapTokens() {
 
 async function viewCurrentPool() {
     const data = readData();
-    console.log("Current pool: ");
-    console.log(`Token A: ${truncate(data.pool.tokenA)} \nToken B: ${truncate(data.pool.tokenB)}`);
+    console.log(chalk.blueBright('Pool Status:'));
+    console.log(chalk.yellowBright(`Token A: ${truncate(data.pool.tokenA)}`));
+    console.log(chalk.yellowBright(`Token B: ${truncate(data.pool.tokenB)}`));
 }
 
 async function viewUserBalance() {
     const data = readData();
-    console.log(`Token A: ${truncate(data.userBalance.tokenA)} \n Token B: ${truncate(data.userBalance.tokenB)}`);
+    console.log(chalk.blueBright('User balance:'));
+    console.log(chalk.yellowBright(`Token A: ${truncate(data.userBalance.tokenA)}`));
+    console.log(chalk.yellowBright(`Token B: ${truncate(data.userBalance.tokenB)}`));
 }
 
 async function showMenu() {
@@ -169,6 +237,7 @@ async function showMenu() {
             message: '',
             choices: [
                 'Add Liquidity',
+                'Remove Liquidity',
                 'Swap Tokens',
                 'View the current pool',
                 'View user balance',
@@ -180,6 +249,9 @@ async function showMenu() {
     switch (choice) {
         case 'Add Liquidity':
             await addLiquidity();
+            break;
+        case 'Remove Liquidity':
+            await removeLiquidity();
             break;
         case 'Swap Tokens':
             await swapTokens();
@@ -203,22 +275,15 @@ async function showMenu() {
 program
     .command('pool-status')
     .description('View pool status')
-    .action(() => {
-        const data = readData();
-        console.log(chalk.blue('Pool Status:'));
-        console.log(`Token A: ${truncate(data.pool.tokenA)}`);
-        console.log(`Token B: ${truncate(data.pool.tokenB)}`);
-        //console.log(`K (Sabiti): ${data.pool.K}`);
+    .action(async () => {
+        await viewCurrentPool()
     });
 
 program
     .command('view-user-balance')
     .description('View user balance')
-    .action(() => {
-        const data = readData();
-        console.log(chalk.blue('User balance:'));
-        console.log(`Token A: ${truncate(data.userBalance.tokenA)}`);
-        console.log(`Token B: ${truncate(data.userBalance.tokenB)}`);
+    .action(async () => {
+        await viewUserBalance();
     });
 
 program
@@ -268,7 +333,7 @@ program
     });
 
 function calculateSwapOutput(inputAmount, reserveIn, reserveOut) {
-    const inputWithFee = inputAmount * 0.997; // 0.3% fee
+    const inputWithFee = inputAmount //  ̶0̶.̶3̶%̶ ̶f̶e̶e̶
     const numerator = inputWithFee * reserveOut;
     const denominator = reserveIn + inputWithFee;
     return numerator / denominator;
@@ -277,24 +342,35 @@ function calculateSwapOutput(inputAmount, reserveIn, reserveOut) {
 program
     .command('add-liquidity <amountA> <amountB>')
     .description('Adds liquidity to the pool.')
-    .action((amountA, amountB) => {
-
+    .action(async(amountA, amountB) => {
         const data = readData();
-        let poolRatio = data.pool.tokenA / data.pool.tokenB;
         const tokenAmountA = parseFloat(amountA);
         const tokenAmountB = parseFloat(amountB);
 
-        if (!(poolRatio.toFixed(2) === (tokenAmountA / tokenAmountB).toFixed(2))) {
-            console.log(chalk.red(`Invalid ratio for the pool. Make sure A/B is ${truncate(poolRatio)}\nThe correct Token B amount is ${truncate(tokenAmountA / poolRatio)}`));
-            console.log(chalk.blue('Pool Status:'));
-            console.log(chalk.yellowBright(`Token A: ${truncate(data.pool.tokenA)}`));
-            console.log(chalk.yellowBright(`Token B: ${truncate(data.pool.tokenB)}`));
+        if (tokenAmountA <= 0 || tokenAmountB <= 0) {
+            console.log(chalk.red('Amounts must be greater than zero.'));
             return;
         }
 
-
         if (data.userBalance.tokenA < tokenAmountA || data.userBalance.tokenB < tokenAmountB) {
             console.log(chalk.red('Insufficient balance!'));
+            await viewUserBalance()
+            return;
+        }
+
+        let poolRatio = data.pool.tokenA / data.pool.tokenB;
+        const requiredTokenB = tokenAmountA / poolRatio;
+
+        if (!(truncate(poolRatio) === truncate(tokenAmountA / (tokenAmountB)))) {
+            if (data.userBalance.tokenB < requiredTokenB) {
+                const maxTokenA = data.userBalance.tokenB * poolRatio;
+                console.log(chalk.red(`Token B required for the given Token A value is ${truncate(requiredTokenB)}. Insufficient Token B.`));
+                console.log(chalk.yellowBright(`You can only contribute up to ${truncate(maxTokenA)} Token A with your current Token B balance.`));
+                return;
+            }
+
+            console.log(chalk.red(`Invalid ratio for the pool. Make sure A/B is ${truncate(poolRatio)}\nThe correct Token B amount is ${truncate(tokenAmountA / poolRatio)}`));
+            await viewCurrentPool()
             return;
         }
 
@@ -309,10 +385,7 @@ program
         data.liquidityShare.tokenA += tokenAmountA;
         data.liquidityShare.tokenB += tokenAmountB;
 
-        //data.pool.K = data.pool.tokenA * data.pool.tokenB;
-        // update JSON file.
         writeData(data);
-
         console.log(chalk.green(`Success! ${truncate(tokenAmountA)} Token A and ${truncate(tokenAmountB)} Token B have been added to the pool.`));
     });
 
