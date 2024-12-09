@@ -234,33 +234,33 @@ async function showMenu() {
         {
             type: 'list',
             name: 'choice',
-            message: '',
+            message: chalk.bgGreenBright('Uniswap V2 DEX Simulation'),
             choices: [
+                'Pool Status',
+                'View User Balance',
+                'Swap Tokens',
                 'Add Liquidity',
                 'Remove Liquidity',
-                'Swap Tokens',
-                'View the current pool',
-                'View user balance',
                 'Exit',
             ],
         },
     ]);
 
     switch (choice) {
+        case 'Pool Status':
+            await viewCurrentPool();
+            break;
+        case 'View User Balance':
+            await viewUserBalance();
+            break;
+        case 'Swap Tokens':
+            await swapTokens();
+            break;
         case 'Add Liquidity':
             await addLiquidity();
             break;
         case 'Remove Liquidity':
             await removeLiquidity();
-            break;
-        case 'Swap Tokens':
-            await swapTokens();
-            break;
-        case 'View the current pool':
-            await viewCurrentPool();
-            break;
-        case 'View user balance':
-            await viewUserBalance();
             break;
         case 'Exit':
             console.log("brb");
