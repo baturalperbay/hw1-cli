@@ -88,7 +88,7 @@ async function removeLiquidity() {
     data.liquidityShare.tokenA -= amountWithdrawA;
     data.liquidityShare.tokenB -= amountWithdrawB;
 
-    console.log(chalk.green(`Success! You have withdrawn ${truncate(amountWithdrawA)} Token A and ${truncate(amountWithdrawB)} Token B from the pool.`))
+    console.log(chalk.green(`Success! You have withdrawn ${chalk.yellow(truncate(amountWithdrawA))} Token A and ${chalk.yellow(truncate(amountWithdrawB))} Token B from the pool.`));
 }
 
 async function addLiquidity() {
@@ -121,7 +121,7 @@ async function addLiquidity() {
     }
 
     // confirmation for the liquidity addition
-    console.log(chalk.blueBright(`For ${truncate(tokenAmountA)} Token A, you need to add ${truncate(requiredTokenB)} Token B.`));
+    console.log(chalk.blueBright(` -> For ${truncate(tokenAmountA)} Token A, you need to add ${truncate(requiredTokenB)} Token B.`));
     const { confirm } = await inquirer.prompt([
         {
             type: 'confirm',
@@ -144,8 +144,7 @@ async function addLiquidity() {
     data.liquidityShare.tokenB += requiredTokenB;
 
     writeData(data);
-    console.log(chalk.green(`Success! ${truncate(tokenAmountA)} Token A and ${truncate(requiredTokenB)} Token B have been added to the pool.`));
-}
+    console.log(chalk.green(`Success! ${chalk.yellow(truncate(tokenAmountA))} Token A and ${chalk.yellow(truncate(requiredTokenB))} Token B have been added to the pool.`));}
 
 async function swapTokens() {
     const data = readData();
@@ -172,6 +171,13 @@ async function swapTokens() {
                     type: 'input',
                     name: 'tokenSwap_A2B_Amount',
                     message: `Enter the amount of Token A you want to swap (1 - ${truncate(data.userBalance.tokenA)}): `,
+                    validate: (input) => {
+                        const value = parseFloat(input);
+                        if (isNaN(value) || value <= 1 || value > data.userBalance.tokenA) {
+                            return chalk.red(`Please enter a valid amount between 1 and ${truncate(data.userBalance.tokenA)}.`);
+                        }
+                        return true;
+                    }
                 },
             ]);
 
@@ -184,7 +190,7 @@ async function swapTokens() {
                 data.userBalance.tokenB += receivedTokenB;
                 data.userBalance.tokenA -= tokenSwap_A2B_Amount;
 
-                console.log(chalk.green(`Swap successful! ${truncate(tokenSwap_A2B_Amount)} Token A was exchanged for ${truncate(receivedTokenB)} Token B.`));
+                console.log(chalk.green(`Swap successful! ${chalk.yellow(truncate(tokenSwap_A2B_Amount))} Token A was exchanged for ${chalk.yellow(truncate(receivedTokenB))} Token B.`));
             }
 
             break;
@@ -195,6 +201,13 @@ async function swapTokens() {
                     type: 'input',
                     name: 'tokenSwap_B2A_Amount',
                     message: `Enter the amount of Token B you want to swap (1 - ${truncate(data.userBalance.tokenB)}): `,
+                    validate: (input) => {
+                        const value = parseFloat(input);
+                        if (isNaN(value) || value <= 1 || value > data.userBalance.tokenB) {
+                            return chalk.red(`Please enter a valid amount between 1 and ${truncate(data.userBalance.tokenB)}.`);
+                        }
+                        return true;
+                    }
                 },
             ]);
 
@@ -207,8 +220,7 @@ async function swapTokens() {
                 data.userBalance.tokenA += receivedTokenA;
                 data.userBalance.tokenB -= tokenSwap_B2A_Amount;
 
-                console.log(chalk.green(`Swap successful! ${truncate(tokenSwap_B2A_Amount)} Token B was exchanged for ${truncate(receivedTokenA)} Token A.`));
-            }
+                console.log(chalk.green(`Swap successful! ${chalk.yellow(truncate(tokenSwap_B2A_Amount))} Token B was exchanged for ${chalk.yellow(truncate(receivedTokenA))} Token A.`));            }
 
             break;
     }
@@ -329,8 +341,7 @@ program
         // update JSON file.
         writeData(data);
 
-        console.log(chalk.green(`Swap successful! ${truncate(amount)} ${fromToken} was exchanged for ${truncate(outputAmount)} ${toToken}.`));
-    });
+        console.log(chalk.green(`Swap successful! ${chalk.yellow(truncate(amount))} ${fromToken} was exchanged for ${chalk.yellow(truncate(outputAmount))} ${toToken}.`));    });
 
 function calculateSwapOutput(inputAmount, reserveIn, reserveOut) {
     const inputWithFee = inputAmount //  ̶0̶.̶3̶%̶ ̶f̶e̶e̶
@@ -386,7 +397,7 @@ program
         data.liquidityShare.tokenB += tokenAmountB;
 
         writeData(data);
-        console.log(chalk.green(`Success! ${truncate(tokenAmountA)} Token A and ${truncate(tokenAmountB)} Token B have been added to the pool.`));
+        console.log(chalk.green(`Success! ${chalk.yellow(truncate(tokenAmountA))} Token A and ${chalk.yellow(truncate(tokenAmountB))} Token B have been added to the pool.`));
     });
 
 program
@@ -416,7 +427,7 @@ program
         // update JSON file.
         writeData(data);
 
-        console.log(chalk.green(`Success! ${truncate(tokenARemove)} of Token A and ${truncate(tokenBRemove)} of Token B have been removed from the pool.`))
+        console.log(chalk.green(`Success! ${chalk.yellow(truncate(tokenARemove))} of Token A and ${chalk.yellow(truncate(tokenBRemove))} of Token B have been removed from the pool.`));
     });
 
 if (process.argv.length > 2) {
